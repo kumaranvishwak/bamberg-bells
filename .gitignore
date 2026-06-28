@@ -1,0 +1,7 @@
+# Raw field recordings are large binary audio files - kept in the
+# submission zip / local storage, not pushed to the code repository.
+01_data/recordings_original/
+01_data/strikes_segmented/**/*.wav
+01_data/strikes_segmented/**/*.flac
+*.pyc
+__pycache__/
