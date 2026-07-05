@@ -72,12 +72,3 @@ python3 02_code/extract_features.py
   too much into the classification numbers, they moved twice already
   from fixing real bugs
 
-## AI use
-
-Claude (Sonnet 4.6, Anthropic) was used for the pipeline code,
-debugging, code review, and drafting/revising the paper. ChatGPT
-(GPT-5.5 Thinking, OpenAI) was used separately for methodological
-review, consistency checking across the paper, and catching two of
-the bugs listed above. Full disclosure with representative prompts is
-in the paper's AI Transparency section; this should match that
-section, not add to it.
