@@ -99,7 +99,7 @@ def add_per_strike_tuning_deviation(df):
 def load_manifest_strength():
     with open(os.path.join(ROOT, "01_data/strikes_segmented/manifest.json")) as f:
         manifest = json.load(f)
-    return {(m["bell_id"], m["file"].replace(".wav", "")): m["strength"] for m in manifest}
+    return {(m["bell_id"], os.path.splitext(os.path.basename(m["file"]))[0]): m["strength"] for m in manifest}
 
 
 def cap_and_aggregate(df):
@@ -110,7 +110,7 @@ def cap_and_aggregate(df):
     strength_map = load_manifest_strength()
 
     def get_strength(row):
-        key = (row["bell_id"], row["file"].replace(".flac", "").replace(".wav", ""))
+        key = (row["bell_id"], os.path.splitext(os.path.basename(row["file"]))[0])
         return strength_map.get(key, np.nan)
 
     df["strength"] = df.apply(get_strength, axis=1)
