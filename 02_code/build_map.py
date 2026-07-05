@@ -1,10 +1,6 @@
 """
-Bamberg Church Bells - Interactive Map Builder
-=================================================
-Builds a single, self-contained HTML file with a Leaflet map. Each
-church is a marker; clicking it opens a popup with metadata and an
-embedded, playable audio sample (base64-encoded mp3, so the file
-works offline except for the OpenStreetMap basemap tiles).
+builds the leaflet map. each church = marker, popup has metadata +
+embedded audio sample so it works offline (except basemap tiles)
 """
 import os
 import json

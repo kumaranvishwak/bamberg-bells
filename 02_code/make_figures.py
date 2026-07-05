@@ -1,10 +1,6 @@
 """
-Bamberg Church Bells - Figure Generation
-==========================================
-Produces the figures used in the term paper:
-  - spectrograms_grid.png : one log-frequency spectrogram per church
-  - results_dashboard.png : 4-panel summary of the statistical results
-  - material_vs_deviation.png : tuning deviation grouped by material
+makes the figures for the paper - spectrogram grid, results dashboard,
+material vs deviation comparison
 """
 import os
 import json

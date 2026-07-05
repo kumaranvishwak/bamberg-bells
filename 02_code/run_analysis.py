@@ -1,17 +1,12 @@
 """
-Bamberg Church Bells - Aggregation, Statistics & Classification
-==================================================================
-1. Caps over-represented churches (st_nicholas_church has 285 raw
-   strikes from a long peal) to a representative top-N by strike
-   strength, so no single church dominates the per-church averages.
-2. Aggregates strike-level features into one row per church/bell.
-3. Joins with metadata (casting year, material, coordinates).
-4. Runs:
-     - Pearson correlation: casting year vs. each acoustic feature
-     - Classical ML baseline: KNN, Leave-One-Bell-Out CV
-     - "Deep learning" extension: a small MLP (multi-layer
-       perceptron) neural network, same CV protocol, for direct
-       comparison (course week 9-11 extension topic)
+aggregates strike features per church, joins with the metadata,
+runs the correlation + KNN/MLP classification.
+
+note: st_martin and st_nicholas have way more raw strikes than the
+rest so they get capped to the top 15 by strength. st_stephan's two
+recording sessions get merged since they're the same bell (avoids
+counting it twice / leaking across CV folds). imputation + scaling
+are fit inside each LOOCV fold, not on the whole dataset beforehand.
 """
 import json
 import os
@@ -22,18 +17,17 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import LeaveOneOut
 from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import confusion_matrix, balanced_accuracy_score
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(SCRIPT_DIR)  # parent of 02_code = COMPLETE_PROJECT
 RESULTS_DIR = os.path.join(ROOT, "04_results")
 MAX_STRIKES_PER_CHURCH = 15
 
-# ---------------------------------------------------------------
-# Metadata. Casting years / material / founder carried over from
-# earlier historical-PDF research in this project; coordinates are
-# approximate (public landmark locations in Bamberg). Two entries
-# are flagged "provisional" pending source re-verification.
-# ---------------------------------------------------------------
+# casting year / material / founder from the Kunstdenkmaeler von Bayern
+# research, coordinates are approximate landmark locations
 METADATA = {
     "bamberg_cathedral":  dict(church="Bamberg Cathedral (Dom)", bell_name="Heinrichsglocke",
                                 casting_year=1311, material="bronze", founder="unknown",
@@ -53,9 +47,9 @@ METADATA = {
     "pestallozistrasse":  dict(church="Auferstehungskirche (Pestalozzistra\u00dfe)", bell_name="Credoglocke",
                                 casting_year=1960, material="bronze", founder="Fa. Rincker",
                                 lat=49.8794, lon=10.8989, certainty="documented"),
-    "evangelical_church": dict(church="St. Stephan (evangelical)", bell_name="Evangelistenglocke",
+    "evangelical_church": dict(church="Evangelical church (Bamberg, exact building not further verified)", bell_name="Evangelistenglocke",
                                 casting_year=1200, material="bronze", founder="unknown",
-                                lat=49.8941, lon=10.8829, certainty="approximate"),
+                                lat=49.8945, lon=10.8815, certainty="approximate - confirmed distinct from St. Stephan"),
     "karmelite_kloster":  dict(church="Karmelitenkirche", bell_name="unnamed",
                                 casting_year=1921, material="cast steel", founder="Bochumer Verein f\u00fcr Gussstahlfabrikation",
                                 lat=49.8908, lon=10.8801, certainty="documented"),
@@ -70,15 +64,36 @@ METADATA = {
                                 lat=49.8870, lon=10.8780, certainty="PROVISIONAL - unverified"),
     "st_stephan":         dict(church="St. Stephan", bell_name="unnamed (session 1)",
                                 casting_year=1200, material="bronze", founder="unknown",
-                                lat=49.8941, lon=10.8829, certainty="PROVISIONAL - assumed same as evangelical_church"),
+                                lat=49.8941, lon=10.8829, certainty="approximate - two sessions confirmed as the same bell, merged for analysis"),
     "st_stephan_2":       dict(church="St. Stephan", bell_name="unnamed (session 2)",
                                 casting_year=1200, material="bronze", founder="unknown",
-                                lat=49.8941, lon=10.8829, certainty="PROVISIONAL - assumed same as evangelical_church"),
+                                lat=49.8941, lon=10.8829, certainty="approximate - two sessions confirmed as the same bell, merged for analysis"),
 }
 
 FEATURE_COLS = ["f_hum", "f_prime", "f_tierce", "f_quint", "f_nominal",
                  "tierce_cents", "t60", "spectral_centroid",
-                 "spectral_bandwidth", "spectral_rolloff", "spectral_flatness"]
+                 "spectral_bandwidth", "spectral_rolloff", "spectral_flatness",
+                 "tuning_deviation_cents"]
+
+# The two St. Stephan recording sessions are the same physical bell
+# (see Section III, Data Quality Correction). They must be merged into
+# one bell-level observation before any statistics are computed,
+# otherwise the same bell is counted twice and can leak across the
+# train/test split in Leave-One-Out CV.
+BELL_ID_MERGE = {"st_stephan_2": "st_stephan"}
+
+
+def add_per_strike_tuning_deviation(df):
+    """Tuning deviation must be computed per strike, then averaged,
+    not averaged first and then converted to a deviation. Computing it
+    on the already-averaged tierce_cents would let strikes that are
+    off in opposite directions cancel out in the mean."""
+    def dev(row):
+        if pd.isna(row["tierce_cents"]):
+            return np.nan
+        return min(abs(row["tierce_cents"] - 300), abs(row["tierce_cents"] - 400))
+    df["tuning_deviation_cents"] = df.apply(dev, axis=1)
+    return df
 
 
 def load_manifest_strength():
@@ -88,7 +103,10 @@ def load_manifest_strength():
 
 
 def cap_and_aggregate(df):
-    # attach strength where available, fall back to spectral flatness rank otherwise
+    df = df.copy()
+
+    # attach strength using the ORIGINAL bell_id (manifest.json keys are
+    # per recording session, e.g. "st_stephan_2", not per physical bell)
     strength_map = load_manifest_strength()
 
     def get_strength(row):
@@ -96,6 +114,11 @@ def cap_and_aggregate(df):
         return strength_map.get(key, np.nan)
 
     df["strength"] = df.apply(get_strength, axis=1)
+
+    # Now merge the two St. Stephan sessions into one bell-level id,
+    # so they are grouped and capped together as a single observation
+    # rather than counted as two independent ones.
+    df["bell_id"] = df["bell_id"].replace(BELL_ID_MERGE)
 
     capped_rows = []
     for bell_id, group in df.groupby("bell_id"):
@@ -137,17 +160,6 @@ def run_correlations(merged):
     return results
 
 
-def deviation_in_cents(merged):
-    """Mean absolute deviation of tierce_cents from the nearer canonical
-    interval (300 cents minor third / 400 cents major third)."""
-    def dev(row):
-        if pd.isna(row["tierce_cents"]):
-            return np.nan
-        return min(abs(row["tierce_cents"] - 300), abs(row["tierce_cents"] - 400))
-    merged["tuning_deviation_cents"] = merged.apply(dev, axis=1)
-    return merged
-
-
 def run_classification(merged):
     """Pre/post-1900 classification: classical KNN baseline vs. a small
     MLP ('deep learning') model, both under Leave-One-Out CV."""
@@ -156,48 +168,65 @@ def run_classification(merged):
     valid["label"] = (valid["casting_year"] >= 1900).astype(int)
 
     feat_cols = ["f_prime", "tierce_cents", "t60", "spectral_centroid", "spectral_bandwidth"]
-    X = valid[feat_cols].copy()
-    X = X.fillna(X.mean())
+    X = valid[feat_cols].copy().values
     y = valid["label"].values
 
     if len(valid) < 4 or len(set(y)) < 2:
         return {"note": "insufficient class diversity for classification", "n": int(len(valid))}
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
     loo = LeaveOneOut()
 
-    def loo_accuracy(model):
+    def loo_accuracy(make_model):
+        # Imputation and standardisation are fit ONLY on the training
+        # fold each time, inside a Pipeline, then applied to the held
+        # out test point. Fitting the scaler on the full dataset before
+        # the loop (as an earlier version of this script did) leaks
+        # information about the test point into training.
         preds = []
-        for train_idx, test_idx in loo.split(X_scaled):
-            model.fit(X_scaled[train_idx], y[train_idx])
-            preds.append(model.predict(X_scaled[test_idx])[0])
-        return float(np.mean(np.array(preds) == y)), preds
+        for train_idx, test_idx in loo.split(X):
+            pipe = Pipeline([
+                ("impute", SimpleImputer(strategy="mean")),
+                ("scale", StandardScaler()),
+                ("clf", make_model()),
+            ])
+            pipe.fit(X[train_idx], y[train_idx])
+            preds.append(pipe.predict(X[test_idx])[0])
+        return np.array(preds)
 
-    knn = KNeighborsClassifier(n_neighbors=3)
-    knn_acc, knn_preds = loo_accuracy(knn)
+    knn_preds = loo_accuracy(lambda: KNeighborsClassifier(n_neighbors=3))
+    mlp_preds = loo_accuracy(lambda: MLPClassifier(hidden_layer_sizes=(16, 8), max_iter=3000,
+                                                     random_state=42, early_stopping=False))
 
-    mlp = MLPClassifier(hidden_layer_sizes=(16, 8), max_iter=3000, random_state=42,
-                         early_stopping=False)
-    mlp_acc, mlp_preds = loo_accuracy(mlp)
+    def summarize(preds):
+        acc = float(np.mean(preds == y))
+        cm = confusion_matrix(y, preds, labels=[0, 1])
+        post1900_recall = float(cm[1, 1] / cm[1].sum()) if cm[1].sum() > 0 else float("nan")
+        bal_acc = float(balanced_accuracy_score(y, preds))
+        return {"loo_accuracy": acc, "balanced_accuracy": bal_acc,
+                "post1900_recall": post1900_recall,
+                "confusion_matrix": cm.tolist()}
+
+    knn_summary = summarize(knn_preds)
+    knn_summary["k"] = 3
+    mlp_summary = summarize(mlp_preds)
+    mlp_summary["architecture"] = "16-8 hidden units"
 
     return {
         "n_samples": int(len(valid)),
         "class_balance": {int(k): int(v) for k, v in zip(*np.unique(y, return_counts=True))},
-        "knn": {"loo_accuracy": knn_acc, "k": 3},
-        "mlp_deep_learning": {"loo_accuracy": mlp_acc, "architecture": "16-8 hidden units"},
+        "knn": knn_summary,
+        "mlp_deep_learning": mlp_summary,
         "majority_class_baseline": float(max(np.bincount(y)) / len(y)),
     }
 
 
 def main():
     df = pd.read_csv(os.path.join(RESULTS_DIR, "all_strikes_features.csv"))
+    df = add_per_strike_tuning_deviation(df)
     agg, capped = cap_and_aggregate(df)
     capped.to_csv(os.path.join(RESULTS_DIR, "capped_strikes_features.csv"), index=False)
 
     merged = attach_metadata(agg)
-    merged = deviation_in_cents(merged)
     merged.to_csv(os.path.join(RESULTS_DIR, "bells_aggregated_with_material.csv"), index=False)
 
     correlations = run_correlations(merged)
