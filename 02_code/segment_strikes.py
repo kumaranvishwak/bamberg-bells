@@ -1,12 +1,10 @@
 """
-Bamberg Church Bells - Strike Segmentation
-Detects individual bell strikes in long-form field recordings using
-onset detection on the RMS energy envelope, then exports each strike
-as a separate WAV clip with some padding for decay tail capture.
+onset detection on the RMS envelope to cut individual strikes out of
+the long recordings, exports each as its own wav clip
 
-Used here only for the churches that did not yet have pre-segmented
-strikes: obere_pfarre, st_nicholas_church, karmelite_kloster,
-st__Heinrich_, st_stephan (original session).
+only needed for churches that weren't already segmented:
+obere_pfarre, st_nicholas_church, karmelite_kloster, st__Heinrich_,
+st_stephan (original session)
 """
 import os
 import json

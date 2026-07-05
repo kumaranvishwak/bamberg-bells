@@ -1,19 +1,7 @@
 """
-Bamberg Church Bells - Acoustic Feature Extraction
-====================================================
-For every individual bell-strike clip, this script:
-
-  1. Computes a high-resolution FFT and finds spectral peaks
-  2. Identifies the five classical bell partials (hum, prime, tierce,
-     quint, nominal) by their approximate frequency ratio to the
-     strongest low-frequency peak (the "prime")
-  3. Classifies tierce type (minor ~300 cents / major ~400 cents
-     above the prime) -> pre-/post-Hemony-reform tuning style
-  4. Estimates T60 decay time from the energy envelope
-  5. Computes standard spectral descriptors (centroid, bandwidth,
-     rolloff, flatness) as additional ML features
-
-Output: one CSV row per strike -> 04_results/all_strikes_features.csv
+extracts the bell partials (hum, prime, tierce, quint, nominal) from
+each strike clip, plus T60 and spectral descriptors. writes one row
+per strike to 04_results/all_strikes_features.csv
 """
 import os
 import json

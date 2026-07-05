@@ -1,20 +1,9 @@
 """
-Builds a clear, labeled "peaks of an individual strike" figure and a
-matching short playable audio clip, for any church, not just Dormplatz.
+makes the labeled peaks figure (waveform + FFT with partials marked)
+for one church, or all of them with --all. also saves a short audio
+clip of the strike for presenting
 
-Usage:
-    python3 make_labeled_peaks.py                  -> Dormplatz (default)
-    python3 make_labeled_peaks.py st_michael        -> St. Michael
-    python3 make_labeled_peaks.py --all             -> every church
-
-For each church this produces two files in 03_spectrograms/demo_peaks/:
-    <church>_labeled_peaks.png   waveform + FFT with hum/prime/tierce/
-                                  quint/nominal partials marked
-    <church>_trimmed_strike.wav  ~1.2s clip of a single clean strike,
-                                  playable directly for a professor or
-                                  in a presentation, instead of having
-                                  to scrub through a multi-minute
-                                  original recording.
+usage: python3 make_labeled_peaks.py [church_name | --all]
 """
 import sys
 import os
