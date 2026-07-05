@@ -11,7 +11,8 @@ import json
 import base64
 import pandas as pd
 
-ROOT = "/home/claude/project/COMPLETE_PROJECT"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(SCRIPT_DIR)  # parent of 02_code = COMPLETE_PROJECT
 RESULTS_DIR = os.path.join(ROOT, "04_results")
 AUDIO_DIR = os.path.join(ROOT, "05_map/map_audio")
 SPECTROGRAM_DIR = os.path.join(ROOT, "03_spectrograms/per_church")

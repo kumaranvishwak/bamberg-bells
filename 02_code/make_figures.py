@@ -15,10 +15,11 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = "/home/claude/project/COMPLETE_PROJECT"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(SCRIPT_DIR)  # parent of 02_code = COMPLETE_PROJECT
 RESULTS_DIR = os.path.join(ROOT, "04_results")
 FIG_DIR = os.path.join(ROOT, "03_spectrograms")
-PAPER_FIG_DIR = "/home/claude/FINAL/term_paper/figures"
+PAPER_FIG_DIR = os.path.join(ROOT, "06_term_paper", "figures")
 os.makedirs(FIG_DIR, exist_ok=True)
 os.makedirs(PAPER_FIG_DIR, exist_ok=True)
 

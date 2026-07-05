@@ -165,7 +165,8 @@ def process_strike(path, bell_id, strike_num):
 
 
 def main():
-    ROOT = "/home/claude/project/COMPLETE_PROJECT"
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    ROOT = os.path.dirname(SCRIPT_DIR)  # parent of 02_code = COMPLETE_PROJECT
     STRIKES_DIR = os.path.join(ROOT, "01_data/strikes_segmented")
     OUT_DIR = os.path.join(ROOT, "04_results")
     os.makedirs(OUT_DIR, exist_ok=True)

@@ -5,3 +5,8 @@
 01_data/strikes_segmented/**/*.flac
 *.pyc
 __pycache__/
+06_term_paper/*.aux
+06_term_paper/*.bbl
+06_term_paper/*.blg
+06_term_paper/*.log
+06_term_paper/*.out

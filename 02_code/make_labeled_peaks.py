@@ -1,69 +1,140 @@
 """
-Builds a clear, labeled "peaks of an individual strike" figure for the
-presentation: trimmed waveform on top, FFT magnitude spectrum below with
-the five detected partials marked and labeled (hum, prime, tierce,
-quint, nominal) -- exactly what was requested: clearly visible peaks
-of one individual, trimmed bell strike, not a generic spectrogram.
+Builds a clear, labeled "peaks of an individual strike" figure and a
+matching short playable audio clip, for any church, not just Dormplatz.
+
+Usage:
+    python3 make_labeled_peaks.py                  -> Dormplatz (default)
+    python3 make_labeled_peaks.py st_michael        -> St. Michael
+    python3 make_labeled_peaks.py --all             -> every church
+
+For each church this produces two files in 03_spectrograms/demo_peaks/:
+    <church>_labeled_peaks.png   waveform + FFT with hum/prime/tierce/
+                                  quint/nominal partials marked
+    <church>_trimmed_strike.wav  ~1.2s clip of a single clean strike,
+                                  playable directly for a professor or
+                                  in a presentation, instead of having
+                                  to scrub through a multi-minute
+                                  original recording.
 """
 import sys
-sys.path.insert(0, "/home/claude/FINAL/code")
+import os
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(SCRIPT_DIR)  # parent of 02_code = COMPLETE_PROJECT
+sys.path.insert(0, SCRIPT_DIR)
 import numpy as np
 import librosa
+import soundfile as sf
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from extract_features import find_spectral_peaks, identify_partials, N_FFT
 
-PATH = "/home/claude/project/COMPLETE_PROJECT/01_data/strikes_segmented/dormplatz/dormplatz_strike003.flac"
-OUT = "/home/claude/FINAL/term_paper/figures/labeled_peaks_dormplatz.png"
-OUT2 = "/home/claude/project/COMPLETE_PROJECT/03_spectrograms/labeled_peaks_dormplatz.png"
+STRIKES_DIR = os.path.join(ROOT, "01_data/strikes_segmented")
+OUT_DIR = os.path.join(ROOT, "03_spectrograms/demo_peaks")
+os.makedirs(OUT_DIR, exist_ok=True)
 
 SR = 48000
-y, sr = librosa.load(PATH, sr=SR, mono=True)
+DISPLAY_DUR = 1.2  # seconds of a single clean strike to show/export
 
-peak_freqs, peak_mags = find_spectral_peaks(y, sr)
-partials, prime_freq = identify_partials(peak_freqs, peak_mags)
-print("Detected partials:", partials)
+# A representative, known-good strike file per church. These were
+# picked as clean, well-isolated single strikes. Set to None to just
+# auto-pick the first usable clip in that church's folder.
+DEFAULT_STRIKE = {
+    "dormplatz":          "dormplatz_strike003.flac",
+    "bamberg_cathedral":  None,
+    "evangelical_church": None,
+    "gruner_markt":       None,
+    "karmelite_kloster":  None,
+    "obere_pfarre":       None,
+    "pestallozistrasse":  None,
+    "st_heinrich":        None,
+    "st_jakob":           None,
+    "st_michael":         None,
+    "st_nicholas_church": None,
+    "st_stephan":         None,
+    "st_stephan_2":       None,
+}
 
-# full FFT for plotting (same window as feature extraction)
-window = np.hanning(min(len(y), N_FFT))
-if len(y) < N_FFT:
-    y_padded = np.pad(y, (0, N_FFT - len(y)))
-    spec = np.abs(np.fft.rfft(y_padded * window))
-else:
-    spec = np.abs(np.fft.rfft(y[:N_FFT] * window))
-freqs = np.fft.rfftfreq(N_FFT, d=1.0 / sr)
-spec_db = 20 * np.log10(np.maximum(spec, 1e-6))
-spec_db -= spec_db.max()
 
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6))
+def pick_strike_file(church):
+    forced = DEFAULT_STRIKE.get(church)
+    church_dir = os.path.join(STRIKES_DIR, church)
+    if forced:
+        return os.path.join(church_dir, forced)
+    files = sorted(f for f in os.listdir(church_dir) if f.endswith((".wav", ".flac")))
+    for f in files:
+        full = os.path.join(church_dir, f)
+        if os.path.getsize(full) > 1000:
+            return full
+    raise FileNotFoundError(f"No usable strike file found for {church}")
 
-display_dur = min(1.2, len(y) / sr)
-n_display = int(display_dur * sr)
-t = np.arange(n_display) / sr
-ax1.plot(t, y[:n_display], color="#1E2761", linewidth=0.8)
-ax1.set_xlim(0, display_dur)
-ax1.set_xlabel("Time (s)")
-ax1.set_ylabel("Amplitude")
-ax1.set_title("Trimmed individual strike -- Dormplatz (first 1.2s shown)")
 
-mask = freqs < 2000
-ax2.plot(freqs[mask], spec_db[mask], color="#1E2761", linewidth=1)
-ax2.set_xlabel("Frequency (Hz)")
-ax2.set_ylabel("Magnitude (dB, normalised)")
-ax2.set_title("FFT spectrum -- partials labeled")
-ax2.set_ylim(-60, 14)
+def make_demo(church):
+    path = pick_strike_file(church)
+    y, sr = librosa.load(path, sr=SR, mono=True)
 
-colors = {"hum": "#D4A017", "prime": "#990011", "tierce": "#028090",
-          "quint": "#2C5F2D", "nominal": "#6D2E46"}
-order = sorted(partials.items(), key=lambda kv: kv[1])
-for i, (name, freq) in enumerate(order):
-    y_text = 4 + (i % 3) * 4.5
-    ax2.axvline(freq, color=colors.get(name, "gray"), linestyle="--", linewidth=1.3)
-    ax2.annotate(f"{name}: {freq:.0f} Hz", xy=(freq, y_text), xytext=(freq, y_text),
-                 ha="center", fontsize=8.5, color=colors.get(name, "gray"), fontweight="bold")
+    peak_freqs, peak_mags = find_spectral_peaks(y, sr)
+    partials, prime_freq = identify_partials(peak_freqs, peak_mags)
+    print(f"[{church}] file={os.path.basename(path)} detected partials:", partials)
 
-plt.tight_layout()
-plt.savefig(OUT, dpi=150)
-plt.savefig(OUT2, dpi=150)
-print(f"Saved -> {OUT}")
+    window = np.hanning(min(len(y), N_FFT))
+    if len(y) < N_FFT:
+        y_padded = np.pad(y, (0, N_FFT - len(y)))
+        spec = np.abs(np.fft.rfft(y_padded * window))
+    else:
+        spec = np.abs(np.fft.rfft(y[:N_FFT] * window))
+    freqs = np.fft.rfftfreq(N_FFT, d=1.0 / sr)
+    spec_db = 20 * np.log10(np.maximum(spec, 1e-6))
+    spec_db -= spec_db.max()
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6))
+
+    display_dur = min(DISPLAY_DUR, len(y) / sr)
+    n_display = int(display_dur * sr)
+    t = np.arange(n_display) / sr
+    ax1.plot(t, y[:n_display], color="#1E2761", linewidth=0.8)
+    ax1.set_xlim(0, display_dur)
+    ax1.set_xlabel("Time (s)")
+    ax1.set_ylabel("Amplitude")
+    ax1.set_title(f"Trimmed individual strike -- {church} (first {display_dur:.1f}s shown)")
+
+    mask = freqs < 2000
+    ax2.plot(freqs[mask], spec_db[mask], color="#1E2761", linewidth=1)
+    ax2.set_xlabel("Frequency (Hz)")
+    ax2.set_ylabel("Magnitude (dB, normalised)")
+    ax2.set_title("FFT spectrum -- partials labeled")
+    ax2.set_ylim(-60, 14)
+
+    colors = {"hum": "#D4A017", "prime": "#990011", "tierce": "#028090",
+              "quint": "#2C5F2D", "nominal": "#6D2E46"}
+    order = sorted(partials.items(), key=lambda kv: kv[1])
+    for i, (name, freq) in enumerate(order):
+        y_text = 4 + (i % 3) * 4.5
+        ax2.axvline(freq, color=colors.get(name, "gray"), linestyle="--", linewidth=1.3)
+        ax2.annotate(f"{name}: {freq:.0f} Hz", xy=(freq, y_text), xytext=(freq, y_text),
+                     ha="center", fontsize=8.5, color=colors.get(name, "gray"), fontweight="bold")
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, f"{church}_labeled_peaks.png")
+    plt.savefig(fig_path, dpi=150)
+    plt.close()
+
+    # Also export the trimmed audio itself, playable directly instead of
+    # scrubbing through the original multi-second/minute recording.
+    clip_path = os.path.join(OUT_DIR, f"{church}_trimmed_strike.wav")
+    sf.write(clip_path, y[:n_display], sr)
+
+    print(f"  -> {fig_path}")
+    print(f"  -> {clip_path}")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--all":
+        for church in DEFAULT_STRIKE:
+            try:
+                make_demo(church)
+            except Exception as e:
+                print(f"[{church}] skipped: {e}")
+    else:
+        church = sys.argv[1] if len(sys.argv) > 1 else "dormplatz"
+        make_demo(church)

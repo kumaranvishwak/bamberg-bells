@@ -23,7 +23,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import LeaveOneOut
 from sklearn.preprocessing import StandardScaler
 
-ROOT = "/home/claude/project/COMPLETE_PROJECT"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(SCRIPT_DIR)  # parent of 02_code = COMPLETE_PROJECT
 RESULTS_DIR = os.path.join(ROOT, "04_results")
 MAX_STRIKES_PER_CHURCH = 15
 
@@ -61,9 +62,9 @@ METADATA = {
     "st_michael":         dict(church="St. Michael", bell_name="Michaelsglocke",
                                 casting_year=1614, material="bronze", founder="Hans Pfeffer",
                                 lat=49.8932, lon=10.8776, certainty="documented"),
-    "st_heinrich":        dict(church="St. Michael", bell_name="Heinrichsglocke (St. Michael)",
-                                casting_year=1794, material="bronze", founder="unknown",
-                                lat=49.8932, lon=10.8776, certainty="documented"),
+    "st_heinrich":        dict(church="St. Heinrich", bell_name="unnamed",
+                                casting_year=1956, material="cast steel", founder="Bochumer Verein f\u00fcr Gussstahlfabrikation",
+                                lat=49.904081, lon=10.909031, certainty="documented (corrected: independent parish church, Eugen-Pacelli-Platz 1, previously misattributed to St. Michael)"),
     "st_nicholas_church": dict(church="St. Nikolaus", bell_name="unnamed",
                                 casting_year=None, material="bronze", founder="unknown",
                                 lat=49.8870, lon=10.8780, certainty="PROVISIONAL - unverified"),

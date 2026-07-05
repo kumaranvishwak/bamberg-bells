@@ -76,8 +76,9 @@ TARGETS = {
 }
 
 if __name__ == "__main__":
-    ROOT = "/home/claude/project/COMPLETE_PROJECT"
-    OUT_BASE = "/home/claude/project/COMPLETE_PROJECT/01_data/strikes_segmented"
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    ROOT = os.path.dirname(SCRIPT_DIR)  # parent of 02_code = COMPLETE_PROJECT
+    OUT_BASE = os.path.join(ROOT, "01_data/strikes_segmented")
     all_new = []
     for bell_id, rel_path in TARGETS.items():
         in_path = os.path.join(ROOT, rel_path)
