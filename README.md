@@ -31,17 +31,21 @@ Install dependencies first:
 pip install -r requirements.txt --break-system-packages
 ```
 
-**To reproduce the statistics and figures** (this works with just
-what's in this repo, no audio needed):
+**To reproduce the statistics, dashboard, and material figure, and the
+map** (this works with just what's in this repo, no audio needed):
 ```
 python3 02_code/run_analysis.py
 python3 02_code/make_figures.py
 python3 02_code/build_map.py
 ```
+`make_figures.py` will also try to regenerate the per-church
+spectrograms, which need the segmented audio. If that audio isn't
+present (it isn't, in this repo), it prints a message and skips just
+that part, the dashboard and material figure still get made.
 
-**To reproduce the full audio pipeline from scratch** (segmentation
-and feature extraction), you need the original and segmented audio
-files, which are not included here:
+**To reproduce the spectrograms and the full audio pipeline from
+scratch** (segmentation and feature extraction), you need the
+original and segmented audio files, which are not included here:
 ```
 python3 02_code/segment_strikes.py
 python3 02_code/extract_features.py

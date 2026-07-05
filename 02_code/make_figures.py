@@ -150,7 +150,16 @@ def plot_material_vs_deviation():
 
 
 if __name__ == "__main__":
-    plot_individual_spectrograms()
-    plot_spectrogram_grid()
+    # These two need the segmented audio, which is not included in the
+    # code repository (see README). Run them first but do not let a
+    # missing audio folder block the two figures below that only need
+    # the results CSV.
+    try:
+        plot_individual_spectrograms()
+        plot_spectrogram_grid()
+    except FileNotFoundError as e:
+        print(f"Skipping spectrogram generation, segmented audio not found: {e}")
+        print("Dashboard and material comparison figures do not need audio and will still be generated.")
+
     plot_dashboard()
     plot_material_vs_deviation()
