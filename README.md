@@ -45,3 +45,82 @@ dependencies:
 ```bash
 python -m venv .venv
 python -m pip install -r requirements.txt
+```
+
+On Windows PowerShell, activate the environment with:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+## Reproducing the final results
+
+Run these commands from the repository root:
+
+```bash
+python 02_code/run_analysis.py
+python 02_code/make_figures.py
+python 02_code/build_map.py
+```
+
+These commands regenerate:
+
+- `04_results/bells_aggregated_with_material.csv`
+- `04_results/capped_strikes_features.csv`
+- `04_results/model_results.json`
+- `04_results/results_dashboard.png`
+- `04_results/material_vs_deviation.png`
+- `05_map/bamberg_bells_map.html`
+
+The final dataset contains twelve retained recording entries, eleven
+bell-level observations, and eleven map markers. The two St. Stephan
+sessions are merged before aggregation.
+
+The recording previously labelled `st_nicholas_church` is retained
+only in some historical working files for provenance. It is filtered
+out before final aggregation and does not appear in the final
+statistics, figures, table, or map.
+
+`make_figures.py` also attempts to regenerate spectrograms. The
+segmented audio is not included in the repository, so this optional
+step is skipped when the audio folders are unavailable. The dashboard
+and material-comparison figure are still generated.
+
+## Interactive map
+
+The generated map is available at:
+
+```text
+05_map/bamberg_bells_map.html
+```
+
+The GitHub Pages copy is:
+
+```text
+docs/index.html
+```
+
+The map contains embedded metadata and audio samples. Leaflet and
+OpenStreetMap resources are loaded from the internet.
+
+## Important data-quality corrections
+
+- St. Martin was re-recorded after its original file was found to be
+  identical to the Bamberg Cathedral recording.
+- `st_heinrich` was corrected from St. Michael to the independent
+  parish church St. Heinrich.
+- `evangelical_church` was identified as Erlöserkirche Bamberg.
+- Incorrect church coordinates were corrected.
+- The strongest-strike selection was fixed to match filenames by stem
+  instead of assuming a `.wav` extension.
+- The unverified St. Nikolaus recording was excluded from the final
+  analysis and map.
+
+## Limitations
+
+The final sample contains only eleven bell-level observations.
+Correlation and classification results should therefore be treated as
+exploratory. Recording distance, background noise, surrounding
+buildings, and short decay windows may affect the extracted features.
