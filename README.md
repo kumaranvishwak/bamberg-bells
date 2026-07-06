@@ -115,8 +115,7 @@ OpenStreetMap resources are loaded from the internet.
 - Incorrect church coordinates were corrected.
 - The strongest-strike selection was fixed to match filenames by stem
   instead of assuming a `.wav` extension.
-- The unverified St. Nikolaus recording was excluded from the final
-  analysis and map.
+
 
 ## Limitations
 
