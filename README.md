@@ -1,74 +1,47 @@
 # Bamberg Church Bells
 
-Machine Listening project (CH-Proj-M), SS 2026, Uni Bamberg.
-Kumaran Vasu, Srujan Mahajan. Supervisor: Prof. Abesser.
+Machine Listening project (CH-Proj-M), SS 2026, University of
+Bamberg.
 
-Field recordings of 13 church bells in Bamberg, feature extraction
-(FFT partials, T60, spectral stuff), KNN vs small MLP for pre/post
-1900 classification, and an interactive map. Paper has the actual
-writeup and results, this is just the code.
+**Authors:** Kumaran Vasu and Srujan Mahajan  
+**Supervisor:** Prof. Abesser
 
-## folders
+This project contains field recordings and acoustic analysis of church
+bells in Bamberg. It includes FFT-based bell-partial extraction,
+estimated decay time, spectral descriptors, KNN and MLP classification,
+figures, and an interactive audio-linked map.
 
-- `02_code/` - the scripts, in order: segment_strikes -> extract_features
-  -> run_analysis -> make_figures / build_map
-- `03_spectrograms/` - spectrogram pngs, plus `demo_peaks/` (labeled
-  peaks + short audio clips per church for presenting)
-- `04_results/` - csvs and model_results.json
-- `05_map/` - the leaflet map html, 12 bell-level markers (the two
-  St. Stephan recording sessions are merged into one marker, so 13
-  recording entries become 12 markers)
+After removing one unverified recording, the final dataset contains:
 
-raw and segmented audio are not in this repo (too big, see
-.gitignore). `04_results/all_strikes_features.csv` already has the
-extracted per-strike features computed from that audio, so the
-statistics and figures can be reproduced without the audio itself.
+- 12 retained recording entries
+- 11 bell-level observations
+- 11 known-year observations used for correlation and classification
+- 11 markers on the interactive map
 
-## running it
+The two St. Stephan recording sessions are merged into one bell-level
+observation and one map marker.
 
-Install dependencies first:
-```
-pip install -r requirements.txt --break-system-packages
-```
+## Folders
 
-**To reproduce the statistics, dashboard, and material figure, and the
-map** (this works with just what's in this repo, no audio needed):
-```
-python3 02_code/run_analysis.py
-python3 02_code/make_figures.py
-python3 02_code/build_map.py
-```
-`make_figures.py` will also try to regenerate the per-church
-spectrograms, which need the segmented audio. If that audio isn't
-present (it isn't, in this repo), it prints a message and skips just
-that part, the dashboard and material figure still get made.
+- `02_code/` – analysis and map-generation scripts
+- `03_spectrograms/` – generated spectrogram images and demonstration
+  material
+- `04_results/` – aggregated CSV files, figures, and
+  `model_results.json`
+- `05_map/` – generated Leaflet map
+- `docs/` – public GitHub Pages version of the interactive map
+- `06_term_paper/` – term-paper source files, when included
 
-**To reproduce the spectrograms and the full audio pipeline from
-scratch** (segmentation and feature extraction), you need the
-original and segmented audio files, which are not included here:
-```
-python3 02_code/segment_strikes.py
-python3 02_code/extract_features.py
-```
+Raw and segmented audio files are not included because of their size.
+The file `04_results/all_strikes_features.csv` contains the extracted
+per-strike features, so the statistical analysis, figures, and map can
+be reproduced without the original audio.
 
-## known issues
+## Installation
 
-- St. Martin recording was originally a duplicate of the cathedral one
-  (same file basically), had to re-record it
-- St. Nikolaus has no confirmed casting year
-- St. Stephan's two recording sessions are the same bell, merged
-  before doing any stats on them
-- there was also a mixup where st_heinrich got filed under St. Michael
-  in the metadata, it's actually its own church, fixed now
-- found a real bug in the strength-based strike capping: the manifest
-  matching code was stripping ".wav" but the manifest files are
-  ".flac", so it silently never matched and fell back to picking the
-  first 15 strikes instead of the 15 strongest for St. Martin and
-  St. Nikolaus. Fixed by matching on the filename stem regardless of
-  extension. This changed the aggregated features for both churches
-  and, through them, the classification and correlation numbers, see
-  the paper's Critical Discussion for the actual before/after
-- 11 known-year observations is still a small sample so don't read
-  too much into the classification numbers, they moved twice already
-  from fixing real bugs
+Create and activate a Python virtual environment, then install the
+dependencies:
 
+```bash
+python -m venv .venv
+python -m pip install -r requirements.txt

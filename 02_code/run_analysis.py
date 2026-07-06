@@ -129,16 +129,6 @@ METADATA = {
         lon=10.909031,
         certainty="documented independent parish church at Eugen-Pacelli-Platz 1; corrected from St. Michael attribution"
     ),
-    "st_nicholas_church": dict(
-        church="St. Nikolaus (exact building unverified)",
-        bell_name="unnamed",
-        casting_year=None,
-        material="bronze",
-        founder="unknown",
-        lat=49.8870,
-        lon=10.8780,
-        certainty="provisional: exact church and location unverified"
-    ),
     "st_stephan": dict(
         church="St. Stephan",
         bell_name="recorded bell/peal (session 1)",
@@ -313,12 +303,22 @@ def run_classification(merged):
 
 def main():
     df = pd.read_csv(os.path.join(RESULTS_DIR, "all_strikes_features.csv"))
+
+    # Remove the unverified St. Nikolaus recording completely.
+    df = df[df["bell_id"] != "st_nicholas_church"].copy()
+
     df = add_per_strike_tuning_deviation(df)
     agg, capped = cap_and_aggregate(df)
-    capped.to_csv(os.path.join(RESULTS_DIR, "capped_strikes_features.csv"), index=False)
+    capped.to_csv(
+        os.path.join(RESULTS_DIR, "capped_strikes_features.csv"),
+        index=False
+    )
 
     merged = attach_metadata(agg)
-    merged.to_csv(os.path.join(RESULTS_DIR, "bells_aggregated_with_material.csv"), index=False)
+    merged.to_csv(
+        os.path.join(RESULTS_DIR, "bells_aggregated_with_material.csv"),
+        index=False
+    )
 
     correlations = run_correlations(merged)
     classification = run_classification(merged)
@@ -329,7 +329,11 @@ def main():
         "n_churches": int(len(merged)),
         "max_strikes_per_church_used": MAX_STRIKES_PER_CHURCH,
     }
-    with open(os.path.join(RESULTS_DIR, "model_results.json"), "w") as f:
+
+    with open(
+        os.path.join(RESULTS_DIR, "model_results.json"),
+        "w"
+    ) as f:
         json.dump(model_results, f, indent=2)
 
     print(json.dumps(model_results, indent=2))
@@ -337,3 +341,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

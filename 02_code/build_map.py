@@ -171,7 +171,7 @@ def main():
 <div id="map"></div>
 <div class="legend">
   <b>Bamberg Church Bells</b><br>
-  {marker_count} bell-level markers derived from 13 recording entries.<br>
+  {marker_count} bell-level markers derived from 12 retained recording entries.<br>
   Hover for the church name; click for metadata and audio.<br>
   <span class="dot" style="background:#2b7bba"></span>Bronze&nbsp;&nbsp;
   <span class="dot" style="background:#d4a017"></span>Cast steel<br>

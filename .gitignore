@@ -10,3 +10,5 @@ __pycache__/
 06_term_paper/*.blg
 06_term_paper/*.log
 06_term_paper/*.out
+
+.venv/
